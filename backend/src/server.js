@@ -1,5 +1,6 @@
 import express from "express";
 import cookieParser from "cookie-parser";
+import cors from "cors";
 
 import authRoutes from "./routes/auth.route.js";
 import { ENV } from "./lib/env.js";
@@ -9,6 +10,7 @@ const app = express();
 
 // Parse JSON and URL-encoded bodies before route handlers
 app.use(express.json()); // populate req.body for JSON
+app.use(cors({origin:ENV.CLIENT_URL,credentials:true}));
 app.use(express.urlencoded({ extended: true })); // populate req.body for form submissions
 
 const PORT = ENV.PORT;
