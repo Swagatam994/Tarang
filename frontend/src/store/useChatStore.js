@@ -2,6 +2,9 @@ import { create } from "zustand";
 import toast from "react-hot-toast";
 import {axiosInstance} from "../lib/axios.js";
 import { useAuthStore } from "./useAuthStore.js";
+
+
+const notificationSound=new Audio("/sounds/notification.mp3");
 export const useChatStore = create((set,get) => ({
   allContacts: [],
   chats: [],
@@ -18,7 +21,11 @@ export const useChatStore = create((set,get) => ({
   },
 
   setActiveTab: (tab) => set({ activeTab: tab }),
-  setSelectedUser: (selectedUser) => set({ selectedUser }),
+  setSelectedUser: (selectedUser) =>
+    set((state) => ({
+      selectedUser,
+      chats: state.chats.map((c) => (c._id === selectedUser._id ? { ...c, unreadCount: 0 } : c)),
+    })),
 
   getAllContacts: async () => {
     set({ isUsersLoading: true });
@@ -78,16 +85,55 @@ sendMessage:async(messageData)=>{
 
  };
 
-  set({ messages: [...messages,optimisticMessage] });//immediately update the ui 
-  try{
-    const res=await axiosInstance.post(`/messages/send/${selectedUser._id}`,messageData)
-    set({messages:messages.concat(res.data)})
-  }catch(error){
-    // remove optimistic message on failure
-    set({messages:messages});
-    toast.error(error.response?.data?.message||"Something went wrong!")
-  }
+  set({ messages: [...messages, optimisticMessage] });
+
+    try {
+      const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
+      set({ messages: messages.concat(res.data) });
+    } catch (error) {
+      // remove optimistic message on failure
+      set({ messages: messages });
+      toast.error(error.response?.data?.message || "Something went wrong");
+    }
 },
 
+
+  subscribeToMessages:()=>{
+    const socket = useAuthStore.getState().socket;
+
+    socket.on("newMessage",(newMessage)=>{
+      const { selectedUser, isSoundEnabled } = get();
+      const currentMessages = get().messages;
+
+      // Only append the incoming message if it belongs to the currently open chat
+      if (selectedUser && (newMessage.senderId === selectedUser._id || newMessage.receiverId === selectedUser._id)) {
+        set({ messages: [...currentMessages, newMessage] });
+        // Update chat entry for the selected user as lastMessage (optional)
+        set((state) => ({
+          chats: state.chats.map((c) => (c._id === (newMessage.senderId === selectedUser._id ? newMessage.senderId : newMessage.receiverId) ? { ...c, lastMessage: newMessage } : c)),
+        }));
+      } else {
+        // Message belongs to another chat: update chats list (lastMessage / unreadCount)
+        set((state) => ({
+          chats: state.chats.map((c) => {
+            if (c._id === newMessage.senderId) {
+              return { ...c, lastMessage: newMessage, unreadCount: (c.unreadCount || 0) + 1 };
+            }
+            return c;
+          }),
+        }));
+      }
+
+      if (isSoundEnabled) {
+        notificationSound.currentTime = 0; //reset to start
+        notificationSound.play().catch((e) => console.log("Audio play failed:", e));
+      }
+    })
+  },
+
+  unsubscribeFromMessages: ()=>{
+    const socket =useAuthStore.getState().socket;
+    socket.off("newMessage");
+  },
 
 }));
