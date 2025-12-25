@@ -6,7 +6,7 @@ import authRoutes from "./routes/auth.route.js";
 import { ENV } from "./lib/env.js";
 import messageRoutes from "./routes/message.route.js";
 import { connectDB } from "./lib/db.js";
-const app = express();
+import { app ,server} from "./lib/socket.js";
 
 // Parse JSON and URL-encoded bodies before route handlers
 app.use(express.json({limit:"5mb"})); // populate req.body for JSON
@@ -28,7 +28,7 @@ if (ENV.NODE_ENV === "production") {
   });
 }
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`server running on http://localhost:${PORT}`);
   connectDB();
 });
