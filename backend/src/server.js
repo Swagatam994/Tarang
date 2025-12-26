@@ -7,6 +7,7 @@ import { ENV } from "./lib/env.js";
 import messageRoutes from "./routes/message.route.js";
 import { connectDB } from "./lib/db.js";
 import { app ,server} from "./lib/socket.js";
+import "./lib/passport.js";
 
 // Parse JSON and URL-encoded bodies before route handlers
 app.use(express.json({limit:"5mb"})); // populate req.body for JSON

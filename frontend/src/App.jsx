@@ -6,18 +6,26 @@ import {Toaster} from "react-hot-toast";
 import ChatPage from "./pages/ChatPage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
+import AuthSuccessPage from "./pages/AuthSuccessPage";
 import { useAuthStore } from "./store/useAuthStore";
+import { axiosInstance } from "./lib/axios";
 import PageLoader from "./components/PageLoader";
 const App = () => {
   const { checkAuth, isCheckingAuth, authUser } = useAuthStore();
 
   useEffect(() => {
+    // Restore token from localStorage on app load
+    const token = localStorage.getItem("token");
+    if (token) {
+      axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    }
     checkAuth();
   }, [checkAuth]);
 
   console.log({ authUser });
 
   if(isCheckingAuth) return <PageLoader/>
+
 
   return (
     <div className="min-h-screen bg-slate-900 relative flex items-center justify-center p-4 overflow-hidden">
@@ -38,6 +46,10 @@ const App = () => {
         <Route
           path="/signup"
           element={!authUser ? <SignUpPage /> : <Navigate to={"/"} />}
+        />
+        <Route
+          path="/auth-success"
+          element={<AuthSuccessPage />}
         />
       </Routes>
 
