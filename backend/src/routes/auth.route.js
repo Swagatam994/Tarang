@@ -15,10 +15,11 @@ import { ENV } from "../lib/env.js";
 import { socketAuthMiddleware } from "../middleware/socket.auth.middleware.js";
 const authRouter = express.Router();
 
-authRouter.use(arcjetProtection);
+// Apply arcjet only to signup and login routes
+authRouter.post("/signup", arcjetProtection, signup);
+authRouter.post("/login", arcjetProtection, login);
 
-authRouter.post("/signup", signup);
-authRouter.post("/login", login);
+// Google OAuth routes - no arcjet protection (Google handles security)
 
 authRouter.get(
   "/google",
@@ -30,8 +31,8 @@ authRouter.get(
   (req, res) => {
     try {
       const token = jwt.sign(
-        { id: req.user._id, email: req.user.email },
-        ENV.SECRET_KEY,
+        { userId: req.user._id },
+        ENV.JWT_SECRET,
         { expiresIn: "7d" }
       );
 

@@ -58,9 +58,16 @@ export const useAuthStore = create((set,get) => ({
   logout: async () => {
     try {
       await axiosInstance.post("/auth/logout");
+      // remove client-side token and headers
+      localStorage.removeItem("token");
+      if (axiosInstance.defaults.headers.common["Authorization"]) {
+        delete axiosInstance.defaults.headers.common["Authorization"];
+      }
+
+      // update state and disconnect socket
+      get().disconnectSocket();
       set({ authUser: null });
       toast.success("Logged Out Successfully");
-      get().disconnectSocket();
     } catch (error) {
       toast.error("Error logging out");
       console.log("Error in logging out", error);
@@ -82,8 +89,12 @@ export const useAuthStore = create((set,get) => ({
     const { authUser } = get();
     if (!authUser || get().socket?.connected) return;
 
+    const token = localStorage.getItem("token");
     const socket = io(BASE_URL, {
       withCredentials: true, // this ensures cookies are sent with the connection
+      auth: {
+        token: token, // Send token for Google OAuth users
+      },
     });
 
     socket.connect();
